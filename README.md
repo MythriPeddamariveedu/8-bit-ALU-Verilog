@@ -50,11 +50,11 @@ The ALU was verified using a Verilog testbench. The simulation confirms correct 
 
 ### Simulation Waveform
 
-![Simulation Waveform](waveform/Waveform-ALU.png)
+![Simulation Waveform](Result/ALU_Waveform.png)
 
 ### RTL Schematic
 
-![RTL Schematic](waveform/RTL_Schematic-ALU.png)
+![RTL Schematic](Result/RTL_Schematic-ALU.png)
 
 ---
 

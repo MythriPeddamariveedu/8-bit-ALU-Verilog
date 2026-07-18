@@ -105,7 +105,7 @@ TOTAL: 80 passed, 0 failed (out of 80 test vectors)
  
 ## RTL Schematic
  
-![RTL Schematic](Result/RTL_Schematic.png)
+![RTL Schematic](Result/RTL%20Schematic.png)
  
 ---
  

@@ -5,9 +5,11 @@ module alu_top_tb;
 reg [7:0] a,b;
 reg cin;
 reg [2:0] sel;
-
 wire [7:0] out;
 wire cout,zero;
+
+integer pass_count = 0;
+integer fail_count = 0;
 
 alu_top DUT(
     .a(a),
@@ -19,53 +21,136 @@ alu_top DUT(
     .zero(zero)
 );
 
-initial
-begin
+task chk;
+    input [7:0]   a_in, b_in;
+    input         cin_in;
+    input [2:0]   sel_in;
+    input [7:0]   exp_out;
+    input [127:0] op_name;
+    begin
+        a = a_in; b = b_in; cin = cin_in; sel = sel_in;
+        #10;
+        if (out === exp_out) begin
+            pass_count = pass_count + 1;
+            $display("PASS %-4s A=%h B=%h Cin=%b -> OUT=%h (expected %h) COUT=%b ZERO=%b",
+                       op_name, a, b, cin, out, exp_out, cout, zero);
+        end else begin
+            fail_count = fail_count + 1;
+            $display("FAIL %-4s A=%h B=%h Cin=%b -> OUT=%h (expected %h) COUT=%b ZERO=%b",
+                       op_name, a, b, cin, out, exp_out, cout, zero);
+        end
+    end
+endtask
 
-$monitor("Time=%0t SEL=%b A=%d B=%d CIN=%b OUT=%d COUT=%b ZERO=%b",
-          $time,sel,a,b,cin,out,cout,zero);
+initial begin
+    $display("Op   | Inputs             | Outputs");
+    $display("--------------------------------------------------------------------");
 
-// Addition
-a=8'd15; b=8'd10; cin=0; sel=3'b000;
-#10;
+    // ---------------- ADD (sel=000) ----------------
+    chk(8'h0F, 8'h0F, 1'b0, 3'b000, 8'h1E, "ADD");
+    chk(8'hFF, 8'h01, 1'b0, 3'b000, 8'h00, "ADD");
+    chk(8'h00, 8'h00, 1'b0, 3'b000, 8'h00, "ADD");
+    chk(8'h7F, 8'h01, 1'b0, 3'b000, 8'h80, "ADD");
+    chk(8'hFF, 8'hFF, 1'b1, 3'b000, 8'hFF, "ADD");
+    chk(8'h01, 8'h01, 1'b1, 3'b000, 8'h03, "ADD");
+    chk(8'h80, 8'h80, 1'b0, 3'b000, 8'h00, "ADD");
+    chk(8'h55, 8'hAA, 1'b0, 3'b000, 8'hFF, "ADD");
+    chk(8'h10, 8'h20, 1'b0, 3'b000, 8'h30, "ADD");
+    chk(8'h00, 8'h00, 1'b1, 3'b000, 8'h01, "ADD");
 
-// Subtraction
-sel=3'b001;
-#10;
+    // ---------------- SUB (sel=001) ----------------
+    chk(8'h0F, 8'h0F, 1'b0, 3'b001, 8'h00, "SUB");
+    chk(8'hFF, 8'h01, 1'b0, 3'b001, 8'hFE, "SUB");
+    chk(8'h01, 8'hFF, 1'b0, 3'b001, 8'h02, "SUB");
+    chk(8'h10, 8'h0F, 1'b1, 3'b001, 8'h00, "SUB");
+    chk(8'h00, 8'h00, 1'b1, 3'b001, 8'hFF, "SUB");
+    chk(8'h80, 8'h01, 1'b0, 3'b001, 8'h7F, "SUB");
+    chk(8'hFF, 8'hFF, 1'b0, 3'b001, 8'h00, "SUB");
+    chk(8'h05, 8'h0A, 1'b0, 3'b001, 8'hFB, "SUB");
+    chk(8'hAA, 8'h55, 1'b0, 3'b001, 8'h55, "SUB");
+    chk(8'h00, 8'h01, 1'b0, 3'b001, 8'hFF, "SUB");
 
-// AND
-sel=3'b010;
-#10;
+    // ---------------- AND (sel=010) ----------------
+    chk(8'hFF, 8'hFF, 1'b0, 3'b010, 8'hFF, "AND");
+    chk(8'hAA, 8'h0F, 1'b0, 3'b010, 8'h0A, "AND");
+    chk(8'h00, 8'hFF, 1'b0, 3'b010, 8'h00, "AND");
+    chk(8'h55, 8'hAA, 1'b0, 3'b010, 8'h00, "AND");
+    chk(8'hF0, 8'h0F, 1'b0, 3'b010, 8'h00, "AND");
+    chk(8'hFF, 8'h00, 1'b0, 3'b010, 8'h00, "AND");
+    chk(8'h3C, 8'hFF, 1'b0, 3'b010, 8'h3C, "AND");
+    chk(8'h81, 8'h81, 1'b0, 3'b010, 8'h81, "AND");
+    chk(8'h0F, 8'h0F, 1'b0, 3'b010, 8'h0F, "AND");
+    chk(8'hE1, 8'h1E, 1'b0, 3'b010, 8'h00, "AND");
 
-// OR
-sel=3'b011;
-#10;
+    // ---------------- OR (sel=011) ----------------
+    chk(8'hAA, 8'h55, 1'b0, 3'b011, 8'hFF, "OR");
+    chk(8'h00, 8'h00, 1'b0, 3'b011, 8'h00, "OR");
+    chk(8'hF0, 8'h0F, 1'b0, 3'b011, 8'hFF, "OR");
+    chk(8'h00, 8'hFF, 1'b0, 3'b011, 8'hFF, "OR");
+    chk(8'h01, 8'h02, 1'b0, 3'b011, 8'h03, "OR");
+    chk(8'h80, 8'h01, 1'b0, 3'b011, 8'h81, "OR");
+    chk(8'h00, 8'h01, 1'b0, 3'b011, 8'h01, "OR");
+    chk(8'h55, 8'h00, 1'b0, 3'b011, 8'h55, "OR");
+    chk(8'h0F, 8'hF0, 1'b0, 3'b011, 8'hFF, "OR");
+    chk(8'h12, 8'h21, 1'b0, 3'b011, 8'h33, "OR");
 
-// XOR
-sel=3'b100;
-#10;
+    // ---------------- XOR (sel=100) ----------------
+    chk(8'hFF, 8'hFF, 1'b0, 3'b100, 8'h00, "XOR");
+    chk(8'hAA, 8'h55, 1'b0, 3'b100, 8'hFF, "XOR");
+    chk(8'h0F, 8'h0F, 1'b0, 3'b100, 8'h00, "XOR");
+    chk(8'hFF, 8'h00, 1'b0, 3'b100, 8'hFF, "XOR");
+    chk(8'h12, 8'h34, 1'b0, 3'b100, 8'h26, "XOR");
+    chk(8'h00, 8'h00, 1'b0, 3'b100, 8'h00, "XOR");
+    chk(8'h80, 8'h80, 1'b0, 3'b100, 8'h00, "XOR");
+    chk(8'h3C, 8'hC3, 1'b0, 3'b100, 8'hFF, "XOR");
+    chk(8'h11, 8'h22, 1'b0, 3'b100, 8'h33, "XOR");
+    chk(8'hAB, 8'hCD, 1'b0, 3'b100, 8'h66, "XOR");
 
-// NOT
-sel=3'b101;
-#10;
+    // ---------------- NOT (sel=101, B ignored) ----------------
+    chk(8'h00, 8'h00, 1'b0, 3'b101, 8'hFF, "NOT");
+    chk(8'hFF, 8'h00, 1'b0, 3'b101, 8'h00, "NOT");
+    chk(8'h0F, 8'h00, 1'b0, 3'b101, 8'hF0, "NOT");
+    chk(8'hAA, 8'h00, 1'b0, 3'b101, 8'h55, "NOT");
+    chk(8'h55, 8'h00, 1'b0, 3'b101, 8'hAA, "NOT");
+    chk(8'h80, 8'h00, 1'b0, 3'b101, 8'h7F, "NOT");
+    chk(8'h7F, 8'h00, 1'b0, 3'b101, 8'h80, "NOT");
+    chk(8'h01, 8'h00, 1'b0, 3'b101, 8'hFE, "NOT");
+    chk(8'hF0, 8'h00, 1'b0, 3'b101, 8'h0F, "NOT");
+    chk(8'h3C, 8'h00, 1'b0, 3'b101, 8'hC3, "NOT");
 
-// Left Shift
-a=8'b00001111;
-sel=3'b110;
-#10;
+    // ---------------- SHL (sel=110) ----------------
+    chk(8'h81, 8'h00, 1'b0, 3'b110, 8'h02, "SHL");
+    chk(8'h00, 8'h00, 1'b0, 3'b110, 8'h00, "SHL");
+    chk(8'h01, 8'h00, 1'b0, 3'b110, 8'h02, "SHL");
+    chk(8'h40, 8'h00, 1'b0, 3'b110, 8'h80, "SHL");
+    chk(8'h80, 8'h00, 1'b0, 3'b110, 8'h00, "SHL");
+    chk(8'h7F, 8'h00, 1'b0, 3'b110, 8'hFE, "SHL");
+    chk(8'hFF, 8'h00, 1'b0, 3'b110, 8'hFE, "SHL");
+    chk(8'h55, 8'h00, 1'b0, 3'b110, 8'hAA, "SHL");
+    chk(8'hAA, 8'h00, 1'b0, 3'b110, 8'h54, "SHL");
+    chk(8'h0F, 8'h00, 1'b0, 3'b110, 8'h1E, "SHL");
 
-// Right Shift
-sel=3'b111;
-#10;
+    // ---------------- SHR (sel=111) ----------------
+    chk(8'h81, 8'h00, 1'b0, 3'b111, 8'h40, "SHR");
+    chk(8'h00, 8'h00, 1'b0, 3'b111, 8'h00, "SHR");
+    chk(8'h02, 8'h00, 1'b0, 3'b111, 8'h01, "SHR");
+    chk(8'h80, 8'h00, 1'b0, 3'b111, 8'h40, "SHR");
+    chk(8'h01, 8'h00, 1'b0, 3'b111, 8'h00, "SHR");
+    chk(8'hFF, 8'h00, 1'b0, 3'b111, 8'h7F, "SHR");
+    chk(8'hFE, 8'h00, 1'b0, 3'b111, 8'h7F, "SHR");
+    chk(8'hAA, 8'h00, 1'b0, 3'b111, 8'h55, "SHR");
+    chk(8'h55, 8'h00, 1'b0, 3'b111, 8'h2A, "SHR");
+    chk(8'h0F, 8'h00, 1'b0, 3'b111, 8'h07, "SHR");
 
-// Zero flag check
-a=8'd0;
-b=8'd0;
-sel=3'b010;
-#10;
+    $display("--------------------------------------------------------------------");
+    $display("TOTAL: %0d passed, %0d failed (out of %0d test vectors)",
+               pass_count, fail_count, pass_count+fail_count);
+    $finish;
+end
 
-$finish;
-
+initial begin
+    $dumpfile("alu_top_tb.vcd");
+    $dumpvars(0, alu_top_tb);
 end
 
 endmodule
